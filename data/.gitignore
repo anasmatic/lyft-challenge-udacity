@@ -1,0 +1,4 @@
+Train/
+vgg/
+lyft_training_data.tar.gz
+vgg16.npy
