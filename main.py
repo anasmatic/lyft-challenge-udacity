@@ -118,7 +118,11 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         batch_num = 0
         batch_total_loss = 0
         for image, label in get_batches_fn(batch_size):
-            #image = np.reshape(image, (-1,-1,-1,num))
+            label = label.reshape([-1,576,800,4])
+            print("  ---- input shape %s"%(str(image.shape)))
+            print("  ---- input_image %s"%(str(input_image.shape)))
+            print("  ---- label shape %s"%(str(label.shape)))
+            print("  ---- correct_label %s"%(str(correct_label.shape)))
             train , batch_loss = sess.run([train_op,cross_entropy_loss], 
                      feed_dict={input_image:image,correct_label:label,keep_prob:0.5,learning_rate:0.001})
             batch_total_loss = batch_total_loss + batch_loss
@@ -130,7 +134,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
 def run():
     num_classes = 4
-    image_shape = (600, 800)
+    image_shape = (576, 800)
     data_dir = './data'
     train_dir = 'Train'
     runs_dir = './runs'
