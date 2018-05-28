@@ -61,20 +61,27 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     conv_1x1_4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, strides=(1,1), padding='same',
                                   kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                   kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+    print("conv_1x1_4 : %s"%str(conv_1x1_4.shape))
     conv_1x1_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, strides=(1,1), padding='same',
                                   kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                   kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+    print("conv_1x1_3 : %s"%str(conv_1x1_3.shape))
     transpose_7 = tf.layers.conv2d_transpose(conv_1x1_7, num_classes, 4, strides=(2, 2),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                              kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+    print("transpose_7 : %s"%str(transpose_7.shape))
     add_7_4 = tf.add(transpose_7, conv_1x1_4)
+    print("add_7_4 : %s"%str(add_7_4.shape))
     transpose_4 = tf.layers.conv2d_transpose(add_7_4, num_classes, 4, strides=(2, 2),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                              kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+    print("transpose_4 : %s"%str(transpose_4.shape))
     add_4_3 = tf.add(transpose_4 , conv_1x1_3 )
+    print("add_4_3 : %s"%str(add_4_3.shape))
     transpose_3 = tf.layers.conv2d_transpose(add_4_3, num_classes, 16, strides=(8, 8),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                              kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+    print("transpose_3 : %s"%str(transpose_3.shape))
     return transpose_3
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
@@ -98,7 +105,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     return logits, train_op, cross_entropy_loss
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-             correct_label, keep_prob, learning_rate):
+             correct_label, keep_prob, learning_rate,num_classes):
     """
     Train neural network and print out the loss during training.
     :param sess: TF Session
@@ -118,7 +125,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         batch_num = 0
         batch_total_loss = 0
         for image, label in get_batches_fn(batch_size):
-            label = label.reshape([-1,576,800,4])
+            label = label.reshape([-1,576,800,num_classes])
             print("  ---- input shape %s"%(str(image.shape)))
             print("  ---- input_image %s"%(str(input_image.shape)))
             print("  ---- label shape %s"%(str(label.shape)))
@@ -133,7 +140,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     pass
 
 def run():
-    num_classes = 4
+    num_classes = 3
     image_shape = (576, 800)
     data_dir = './data'
     train_dir = 'Train'
@@ -171,7 +178,7 @@ def run():
         sess.run(tf.global_variables_initializer())
         # TODO: Train NN using the train_nn function
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-             correct_label, keep_prob, learning_rate)
+             correct_label, keep_prob, learning_rate,num_classes)
         
         #TODO: safe model : 
         saver = tf.train.Saver()

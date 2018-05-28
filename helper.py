@@ -58,7 +58,7 @@ def maybe_download_pretrained_vgg(data_dir):
         os.remove(os.path.join(vgg_path, vgg_filename))
 
 def preprocess_labels(label_image):
-    #exclude labels : 1,2,3,5,8,9,11,12
+    #exclude labels : 1,2,3,4,5,8,9,11,12
     labels_new = np.copy(label_image)
     # Identify lane marking pixels (label is 6)
     lane_marking_pixels = (label_image[:,:,0] == 6).nonzero()
@@ -83,6 +83,8 @@ def preprocess_labels(label_image):
     other_pixels = (label_image[:,:,0] == 2).nonzero()
     labels_new[other_pixels] = 0
     other_pixels = (label_image[:,:,0] == 3).nonzero()
+    labels_new[other_pixels] = 0
+    other_pixels = (label_image[:,:,0] == 4).nonzero()
     labels_new[other_pixels] = 0
     other_pixels = (label_image[:,:,0] == 5).nonzero()
     labels_new[other_pixels] = 0
