@@ -7,7 +7,7 @@ import warnings
 from distutils.version import LooseVersion
 import numpy as np
 import cv2
-import IPython
+#slpit data , to :training and validation
 
 # Check TensorFlow Version
 assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
@@ -61,27 +61,20 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     conv_1x1_4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, strides=(1,1), padding='same',
                                   kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                   kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
-    print("conv_1x1_4 : %s"%str(conv_1x1_4.shape))
     conv_1x1_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, strides=(1,1), padding='same',
                                   kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                   kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
-    print("conv_1x1_3 : %s"%str(conv_1x1_3.shape))
     transpose_7 = tf.layers.conv2d_transpose(conv_1x1_7, num_classes, 4, strides=(2, 2),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                              kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
-    print("transpose_7 : %s"%str(transpose_7.shape))
     add_7_4 = tf.add(transpose_7, conv_1x1_4)
-    print("add_7_4 : %s"%str(add_7_4.shape))
     transpose_4 = tf.layers.conv2d_transpose(add_7_4, num_classes, 4, strides=(2, 2),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                              kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
-    print("transpose_4 : %s"%str(transpose_4.shape))
     add_4_3 = tf.add(transpose_4 , conv_1x1_3 )
-    print("add_4_3 : %s"%str(add_4_3.shape))
     transpose_3 = tf.layers.conv2d_transpose(add_4_3, num_classes, 16, strides=(8, 8),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                              kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
-    print("transpose_3 : %s"%str(transpose_3.shape))
     return transpose_3
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
@@ -95,17 +88,12 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     """
     logits = tf.reshape(nn_last_layer, (-1, num_classes), name='logits')
     labels = tf.reshape(correct_label, (-1, num_classes), name='labels')
-    print("~~~~logits~~~~")
-    print(logits)
-    print("----labels----")
-    print(labels)
-    print("_________")
     cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=labels,logits=logits))
     train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss = cross_entropy_loss);
     return logits, train_op, cross_entropy_loss
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-             correct_label, keep_prob, learning_rate,num_classes):
+             correct_label, keep_prob, learning_rate, num_classes, train_files):
     """
     Train neural network and print out the loss during training.
     :param sess: TF Session
@@ -124,12 +112,8 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         print(" ----- starting epoch %d , batchsize=%d"%(epoch,batch_size))
         batch_num = 0
         batch_total_loss = 0
-        for image, label in get_batches_fn(batch_size):
+        for image, label in get_batches_fn(batch_size, train_files):
             label = label.reshape([-1,576,800,num_classes])
-            print("  ---- input shape %s"%(str(image.shape)))
-            print("  ---- input_image %s"%(str(input_image.shape)))
-            print("  ---- label shape %s"%(str(label.shape)))
-            print("  ---- correct_label %s"%(str(correct_label.shape)))
             train , batch_loss = sess.run([train_op,cross_entropy_loss], 
                      feed_dict={input_image:image,correct_label:label,keep_prob:0.5,learning_rate:0.001})
             batch_total_loss = batch_total_loss + batch_loss
@@ -165,11 +149,11 @@ def run():
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
-        get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, train_dir), image_shape)
-
+        get_batches_fn, train_files, validation_files = helper.gen_batch_function(os.path.join(data_dir, train_dir), image_shape)
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
-		
+        print("train_paths : %d"%len(train_files))
+        print("validation_paths: %d"%len(validation_files))
         # TODO: Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess,vgg_path)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
@@ -178,14 +162,14 @@ def run():
         sess.run(tf.global_variables_initializer())
         # TODO: Train NN using the train_nn function
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-             correct_label, keep_prob, learning_rate,num_classes)
+             correct_label, keep_prob, learning_rate, num_classes, train_files)
         
         #TODO: safe model : 
         saver = tf.train.Saver()
-        saver.save(sess, './saved/segmentation_model_180527')
+        saver.save(sess, './saved/segmentation_model_180528')
         print("Model Saved!")
         # TODO: Save inference data using helper.save_inference_samples
-        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files)
 
 
 if __name__ == '__main__':

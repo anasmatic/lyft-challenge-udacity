@@ -11,6 +11,7 @@ from glob import glob
 from urllib.request import urlretrieve
 from tqdm import tqdm
 import cv2
+from sklearn.model_selection import train_test_split
 
 class DLProgress(tqdm):
     last_block = 0
@@ -106,40 +107,33 @@ def gen_batch_function(data_folder, image_shape):
     :param image_shape: Tuple - Shape of image
     :return:
     """
-    def get_batches_fn(batch_size):
+    image_paths = glob(os.path.join(data_folder, 'CameraRGB', '*.png'))
+    train_paths, validation_paths = train_test_split(image_paths, test_size=0.25)
+    def get_batches_fn(batch_size,train_paths):
         """
         Create batches of training data
         :param batch_size: Batch Size
         :return: Batches of training data
         """
-        image_paths = glob(os.path.join(data_folder, 'CameraRGB', '*.png'))
-        label_paths = glob(os.path.join(data_folder, 'CameraSeg', '*.png'))
-        background_color = np.array([255, 0, 0])
-        random.shuffle(image_paths)
-        for batch_i in range(0, len(image_paths), batch_size):
+        #label_paths = glob(os.path.join(data_folder, 'CameraSeg', '*.png'))
+        #background_color = np.array([255, 0, 0])
+        random.shuffle(train_paths)
+        for batch_i in range(0, len(train_paths), batch_size):
             images = []
             gt_images = []
-            for image_file in image_paths[batch_i:batch_i+batch_size]:
+            for image_file in train_paths[batch_i:batch_i+batch_size]:
                 gt_image_file = image_file.replace("CameraRGB", "CameraSeg")
 
                 image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
                 gt_image = scipy.misc.imresize(scipy.misc.imread(gt_image_file), image_shape)
-                #image = scipy.misc.imread(image_file)
-                #gt_image = scipy.misc.imread(gt_image_file)
-
-                #gt_bg = np.all(gt_image == background_color, axis=2)
-                #gt_bg = gt_bg.reshape(*gt_bg.shape, 1)
-                #gt_image = np.concatenate((gt_bg, np.invert(gt_bg)), axis=2)
                 gt_image = preprocess_labels(gt_image)
-                #gt_image = gt_image.reshape(*gt_image.shape, 1)
                 images.append(image)
                 gt_images.append(gt_image)
                 #augment ---------------------------
-                #  1- grayscal with contrast
+                #  - grayscal with contrast
                 img = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
                 img = cv2.equalizeHist(img)#contrast http://docs.opencv.org/2.4/doc/tutorials/imgproc/histograms/histogram_equalization/histogram_equalization.html
                 cv2.normalize(img,img, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)#, dtype=cv2.CV_32F)
-                #img.shape = (img.shape[0],img.shape[1],3)#update shape
                 img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
                 images.append(img)
                 gt_images.append(gt_image)
@@ -157,7 +151,7 @@ def gen_batch_function(data_folder, image_shape):
                 '''
                 #augment end ----------------------------------------------------
             yield np.array(images), np.array(gt_images)
-    return get_batches_fn
+    return get_batches_fn, train_paths, validation_paths
 
 
 def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape):
@@ -171,7 +165,10 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
     :param image_shape: Tuple - Shape of image
     :return: Output for for each test image
     """
-    for image_file in glob(os.path.join(data_folder, 'image_2', '*.png')):
+    #image_paths = glob(os.path.join(data_folder, 'CameraRGB', '*.png'))
+    #label_paths = glob(os.path.join(data_folder, 'CameraSeg', '*.png'))
+    #for image_file in glob(os.path.join(data_folder, 'image_2', '*.png')):    
+    for image_file in  data_folder:
         image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
 
         im_softmax = sess.run(
@@ -187,7 +184,7 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
         yield os.path.basename(image_file), np.array(street_im)
 
 
-def save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image):
+def save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files):
     # Make folder for current run
     output_dir = os.path.join(runs_dir, str(time.time()))
     if os.path.exists(output_dir):
@@ -197,6 +194,6 @@ def save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_p
     # Run NN on test images and save them to HD
     print('Training Finished. Saving test images to: {}'.format(output_dir))
     image_outputs = gen_test_output(
-        sess, logits, keep_prob, input_image, os.path.join(data_dir, 'data_road/testing'), image_shape)
+        sess, logits, keep_prob, input_image, validation_files, image_shape)
     for name, image in image_outputs:
         scipy.misc.imsave(os.path.join(output_dir, name), image)
