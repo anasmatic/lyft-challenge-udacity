@@ -110,6 +110,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     
     for epoch in range(epochs):
         print(" ----- starting epoch %d , batchsize=%d"%(epoch,batch_size))
+        loss_list = []
         batch_num = 0
         batch_total_loss = 0
         for image, label in get_batches_fn(batch_size, train_files):
@@ -119,8 +120,13 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
             batch_total_loss = batch_total_loss + batch_loss
             print("    batch %d has loss %f"%(batch_num,batch_loss))
             batch_num +=1
+            loss_list.append(batch_loss)
         epoch_loss=batch_total_loss/batch_num
         print ("  epoch %d finished with loss %f"%(epoch,epoch_loss))
+    print(loss_list)
+    #plt.plot(loss_list)
+    #plt.ylabel('loss_list_001')
+    #plt.savefig('loss_list_001',format='png')
     pass
 
 def run():
@@ -137,7 +143,7 @@ def run():
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
-    epochs = 20#2#10
+    epochs = 8#2#10
     batch_size = 16
     #learning_rate = 10.0#from project_tests.py
     with tf.Session() as sess:
@@ -160,13 +166,18 @@ def run():
         logits, train_op, cross_entropy_loss = optimize(layer_output,correct_label,learning_rate,num_classes)
         
         sess.run(tf.global_variables_initializer())
+        #################### load model if there are any ###############
+        saver = tf.train.import_meta_graph('./saved/segmentation_model_180529.meta')
+        saver.restore(sess,tf.train.latest_checkpoint('./saved/'))        
+        print("Model loaded!")
+        ################################################################
         # TODO: Train NN using the train_nn function
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
              correct_label, keep_prob, learning_rate, num_classes, train_files)
         
         #TODO: safe model : 
         saver = tf.train.Saver()
-        saver.save(sess, './saved/segmentation_model_180528')
+        saver.save(sess, './saved/segmentation_model_180529')
         print("Model Saved!")
         # TODO: Save inference data using helper.save_inference_samples
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files)

@@ -188,18 +188,19 @@ def validate():
         learning_rate = tf.placeholder(tf.float32, name='learning_rate')#from project_tests.py    
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
-        # Create function to get batches        
+        # Create function to get batches
+        get_batches_fn, train_files, validation_files = helper.gen_batch_function(os.path.join(data_dir, train_dir), image_shape)
         # TODO: Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess,vgg_path)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
         logits, train_op, cross_entropy_loss = optimize(layer_output,correct_label,learning_rate,num_classes)
         
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.import_meta_graph('saved/segmentation_model_180528')
-        saver.restore(sess,tf.train.latest_checkpoint('./'))        
+        saver = tf.train.import_meta_graph('./saved/segmentation_model_180529.meta')
+        saver.restore(sess,tf.train.latest_checkpoint('./saved/'))        
         print("Model loaded!")
         # TODO: Save inference data using helper.save_inference_samples
-        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files)
 
 if __name__ == '__main__':
     validate()
