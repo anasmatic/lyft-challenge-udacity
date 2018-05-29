@@ -113,9 +113,9 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         batch_num = 0
         batch_total_loss = 0
         for image, label in get_batches_fn(batch_size, train_files):
-            label = label.reshape([-1,576,800,num_classes])
+            label = label.reshape([-1,288,416,num_classes])
             train , batch_loss = sess.run([train_op,cross_entropy_loss], 
-                     feed_dict={input_image:image,correct_label:label,keep_prob:0.5,learning_rate:0.001})
+                     feed_dict={input_image:image,correct_label:label,keep_prob:0.5,learning_rate:0.000001})
             batch_total_loss = batch_total_loss + batch_loss
             print("    batch %d has loss %f"%(batch_num,batch_loss))
             batch_num +=1
@@ -125,7 +125,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
 def run():
     num_classes = 3
-    image_shape = (576, 800)
+    image_shape = (288,416)#(576, 800)
     data_dir = './data'
     train_dir = 'Train'
     runs_dir = './runs'
@@ -137,8 +137,8 @@ def run():
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
-    epochs = 10#2#10
-    batch_size = 6
+    epochs = 20#2#10
+    batch_size = 16
     #learning_rate = 10.0#from project_tests.py
     with tf.Session() as sess:
         #vars
