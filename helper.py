@@ -163,9 +163,10 @@ def gen_batch_function(data_folder, image_shape):
 
                     #augment end ----------------------------------------------------
                 #end if
-            c = list(zip(images, gt_images))
-            random.shuffle(c)
-            images, gt_images = zip(*c)
+            if len(images) > 0 or len(gt_images) > 0:
+                c = list(zip(images, gt_images))
+                random.shuffle(c)
+                images, gt_images = zip(*c)
             yield np.array(images), np.array(gt_images)
     return get_batches_fn, train_paths, validation_paths
 
