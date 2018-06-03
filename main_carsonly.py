@@ -179,6 +179,8 @@ def run(validate):
             #saver.restore(sess,tf.train.latest_checkpoint('./saved/'))
             saver.restore(sess, "./saved/_180603_10_001/segmentation_model.ckpt")
             print("Model loaded!")
+            tf.train.write_graph(sess.graph, './saved/_180603_10_001/', 'carsonly.pb', False)
+            return
             #graph.get_tensor_by_name
             ################################################################
             # TODO: Train NN using the train_nn function
@@ -197,10 +199,12 @@ def run(validate):
         
 def freeze():
     sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
+    v = tf.Variable(0, name='my_variable')
     saver = tf.train.Saver()
     saver.restore(sess, "./saved/_180603_10_001/segmentation_model.ckpt")
     print("Model loaded!")
-    tf.train.write_graph(sess.graph, './saved/_180603_01_001/', 'train.pb', False)
+    tf.train.write_graph(sess.graph, './saved/_180603_10_001/', 'carsonly.pb', False)
 
 
 import scipy.misc
@@ -253,6 +257,6 @@ def test1():
     print("uniq="+str(np.unique(gt_image[:,:,2],return_counts=True)))
 
 if __name__ == '__main__':
-    run(False)
+    run(True)
     #test1()
     #freeze()
