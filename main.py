@@ -170,20 +170,19 @@ def run(validate):
         logits, train_op, cross_entropy_loss = optimize(layer_output,correct_label,learning_rate,num_classes)
         
         sess.run(tf.global_variables_initializer())
+        saver = tf.train.Saver()
         if validate :
             #################### load model if there are any ###############
             print(">>>>>>>>>> vars in saved model :")
             #chkp.print_tensors_in_checkpoint_file("./saved/segmentation_model_180529", tensor_name='', all_tensors=True)
             #saver = tf.train.import_meta_graph('./saved/segmentation_model_180531.meta')
             #saver.restore(sess,tf.train.latest_checkpoint('./saved/'))
-            saver = tf.train.Saver()
             saver.restore(sess, "./saved/_180603_01_001/segmentation_model.ckpt")
             print("Model loaded!")
             #graph.get_tensor_by_name
             ################################################################
             # TODO: Train NN using the train_nn function
         else:
-            #saver = tf.train.Saver()
             #saver.restore(sess, "./saved/_180603_01_001/segmentation_model.ckpt")
             print("Model loaded!")
             print("start train 180603_002 : epochs="+str(epochs)+" ,batch_size="+str(batch_size))

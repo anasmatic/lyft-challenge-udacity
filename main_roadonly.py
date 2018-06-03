@@ -170,32 +170,40 @@ def run(validate):
         logits, train_op, cross_entropy_loss = optimize(layer_output,correct_label,learning_rate,num_classes)
         
         sess.run(tf.global_variables_initializer())
+        saver = tf.train.Saver()
         if validate :
             #################### load model if there are any ###############
             print(">>>>>>>>>> vars in saved model :")
             #chkp.print_tensors_in_checkpoint_file("./saved/segmentation_model_180529", tensor_name='', all_tensors=True)
             #saver = tf.train.import_meta_graph('./saved/segmentation_model_180531.meta')
             #saver.restore(sess,tf.train.latest_checkpoint('./saved/'))
-            saver = tf.train.Saver()
             saver.restore(sess, "./saved/_180603_7_001/segmentation_model.ckpt")
             print("Model loaded!")
             #graph.get_tensor_by_name
             ################################################################
             # TODO: Train NN using the train_nn function
         else:
-            #saver = tf.train.Saver()
             #saver.restore(sess, "./saved/_180603_7_001/segmentation_model.ckpt")
             print("Model loaded!")
             print("start train 180603_7_001 roadonly : epochs="+str(epochs)+" ,batch_size="+str(batch_size))
             train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,  correct_label, keep_prob, learning_rate, num_classes, train_files)
-        
             #TODO: safe model : 
             saver.save(sess, './saved/_180603_7_001/segmentation_model.ckpt')
-            print("Model Saved!")
+            print("Model Saved!")    
             # TODO: Save inference data using helper.save_inference_samples
         helper_roadonly.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files)
+        tf.train.write_graph(sess.graph, './saved/_180603_7_001/', 'train.pb', False)
+        print("Model Frozen!")
         print("done")
-        
+
+                
+def freeze():
+    sess = tf.Session()
+    saver = tf.train.Saver()
+    saver.restore(sess, "./saved/_180603_01_001/segmentation_model.ckpt")
+    print("Model loaded!")
+    tf.train.write_graph(sess.graph, './saved/_180603_01_001/', 'train.pb', False)
+
 import scipy.misc
 import numpy as np
 def test1():
@@ -248,3 +256,5 @@ def test1():
 if __name__ == '__main__':
     run(False)
     #test1()
+    #freeze()
+
