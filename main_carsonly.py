@@ -58,24 +58,24 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     conv_1x1_7 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, strides=(1,1), padding='same',
                                   kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                  kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))#https://www.programcreek.com/python/example/90502/tensorflow.truncated_normal_initializer
+                                  kernel_initializer=tf.truncated_normal_initializer(stddev=1e-2))#https://www.programcreek.com/python/example/90502/tensorflow.truncated_normal_initializer
     conv_1x1_4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, strides=(1,1), padding='same',
                                   kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                  kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+                                  kernel_initializer=tf.truncated_normal_initializer(stddev=1e-2))
     conv_1x1_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, strides=(1,1), padding='same',
                                   kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                  kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+                                  kernel_initializer=tf.truncated_normal_initializer(stddev=1e-2))
     transpose_7 = tf.layers.conv2d_transpose(conv_1x1_7, num_classes, 4, strides=(2, 2),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                             kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+                                             kernel_initializer=tf.truncated_normal_initializer(stddev=1e-2))
     add_7_4 = tf.add(transpose_7, conv_1x1_4)
     transpose_4 = tf.layers.conv2d_transpose(add_7_4, num_classes, 4, strides=(2, 2),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                             kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+                                             kernel_initializer=tf.truncated_normal_initializer(stddev=1e-2))
     add_4_3 = tf.add(transpose_4 , conv_1x1_3 )
     transpose_3 = tf.layers.conv2d_transpose(add_4_3, num_classes, 16, strides=(8, 8),padding='same',
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                             kernel_initializer=tf.truncated_normal_initializer(stddev=1e-3))
+                                             kernel_initializer=tf.truncated_normal_initializer(stddev=1e-2))
     return transpose_3
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
@@ -120,7 +120,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
             #label = label.reshape([-1,288,416,num_classes])
             #first 8 epoches (batch_size=16) learning_rate = 0.000001
             train , batch_loss = sess.run([train_op,cross_entropy_loss], 
-                     feed_dict={input_image:image,correct_label:label,keep_prob:0.5,learning_rate:1e-3})
+                     feed_dict={input_image:image,correct_label:label,keep_prob:0.3,learning_rate:1e-3})
             batch_total_loss = batch_total_loss + batch_loss
             print("    batch %d has loss %f"%(batch_num,batch_loss))
             batch_num +=1
@@ -134,7 +134,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     pass
 
 def run(validate):
-    num_classes = 3
+    num_classes = 2
     image_shape = (288,416)#(576, 800)
     data_dir = './data'
     train_dir = 'Train'
@@ -147,7 +147,7 @@ def run(validate):
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
-    epochs = 5#8#2#10
+    epochs = 14#8#2#10
     batch_size = 4#10#6#8#
     #learning_rate = 10.0#from project_tests.py
     with tf.Session() as sess:
@@ -177,7 +177,7 @@ def run(validate):
             #saver = tf.train.import_meta_graph('./saved/segmentation_model_180531.meta')
             #saver.restore(sess,tf.train.latest_checkpoint('./saved/'))
             saver = tf.train.Saver()
-            saver.restore(sess, "./saved/_180603_01_001/segmentation_model.ckpt")
+            saver.restore(sess, "./saved/_180603_10_001/segmentation_model.ckpt")
             print("Model loaded!")
             #graph.get_tensor_by_name
             ################################################################
@@ -185,12 +185,12 @@ def run(validate):
         else:
             #saver = tf.train.Saver()
             #saver.restore(sess, "./saved/_180603_01_001/segmentation_model.ckpt")
-            print("Model loaded!")
-            print("start train 180603_002 : epochs="+str(epochs)+" ,batch_size="+str(batch_size))
+            #print("Model loaded!")
+            print("start train 180603_10_001 carsonly : epochs="+str(epochs)+" ,batch_size="+str(batch_size))
             train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,  correct_label, keep_prob, learning_rate, num_classes, train_files)
         
             #TODO: safe model : 
-            saver.save(sess, './saved/_180603_02/segmentation_model.ckpt')
+            saver.save(sess, './saved/_180603_10_001/segmentation_model.ckpt')
             print("Model Saved!")
             # TODO: Save inference data using helper.save_inference_samples
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files)

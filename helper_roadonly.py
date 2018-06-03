@@ -78,21 +78,13 @@ def preprocess_labels(label_image):#include labels : 0=gb, 7=road, 10=cars
     label_image[other_pixels] = 0
     other_pixels = (label_image[:,:,0] == 12).nonzero()#TrafficSigns
     label_image[other_pixels] = 0
+    other_pixels = (label_image[:,:,0] == 10).nonzero()#cars
+    label_image[other_pixels] = 0
     
     #labels_new = np.copy(label_image)
     #  tify lane marking pixels (label is 6)
     lane_marking_pixels = (label_image[:,:,0] == 6).nonzero()
     label_image[lane_marking_pixels] = 7# Set lane marking pixels to road (label is 7)
-    # Identify all vehicle pixels
-    vehicle_pixels = (label_image[:,:,0] == 10).nonzero()
-    # Isolate vehicle pixels associated with the hood (y-position > 496)
-    hood_indices = (vehicle_pixels[0] >= 235).nonzero()[0]
-    hood_pixels = (vehicle_pixels[0][hood_indices], \
-                   vehicle_pixels[1][hood_indices])
-    # Set hood pixel labels to 0
-    label_image[hood_pixels] = 0
-    # Return the preprocessed label image 
-    #print("labels_new.shape: "+str(labels_new.shape))
     return label_image
 
 def gen_batch_function(data_folder, image_shape):
@@ -123,7 +115,6 @@ def gen_batch_function(data_folder, image_shape):
                 gt_image = preprocess_labels(gt_image)
                 background_color = np.array([0, 0, 0])
                 road_color = np.array([7, 0, 0])
-                car_color = np.array([10, 0, 0])    
                 #gt_bg = np.all(gt_image == background_color, axis=2)
                 #gt_bg = gt_bg.reshape(*gt_bg.shape, 1)
                 #gt_image = np.concatenate((gt_bg, np.invert(gt_bg)), axis=2)
@@ -131,11 +122,10 @@ def gen_batch_function(data_folder, image_shape):
                 gt_bg = gt_bg.reshape(*gt_bg.shape, 1)
                 gt_road = np.all(gt_image == road_color, axis=2)
                 gt_road = gt_road.reshape(*gt_road.shape, 1)
-                gt_car = np.all(gt_image == car_color, axis=2)
-                gt_car = gt_car.reshape(*gt_car.shape, 1)
-                gt_image = np.concatenate((gt_bg, gt_road, gt_car), axis=2)
-                #images.append(image)
-                #gt_images.append(gt_image)
+                gt_image = np.concatenate((gt_bg, gt_road), axis=2)
+                images.append(image)
+                gt_images.append(gt_image)
+                '''
                 items, car_count = np.unique(gt_car,return_counts=True)
                 if len(car_count) > 1 and car_count[1] > 3000:
                     #augment ---------------------------
@@ -166,6 +156,7 @@ def gen_batch_function(data_folder, image_shape):
             c = list(zip(images, gt_images))
             random.shuffle(c)
             images, gt_images = zip(*c)
+            '''
             yield np.array(images), np.array(gt_images)
     return get_batches_fn, train_paths, validation_paths
 
@@ -194,11 +185,10 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
         
         im_softmax_none = im_softmax[0][:, 0].reshape(image_shape[0], image_shape[1])
         im_softmax_road = im_softmax[0][:, 1].reshape(image_shape[0], image_shape[1])
-        im_softmax_car = im_softmax[0][:, 2].reshape(image_shape[0], image_shape[1])
         
         segmentation_none = (im_softmax_none > 0.5).reshape(image_shape[0], image_shape[1], 1)
         segmentation_road = (im_softmax_road > 0.5).reshape(image_shape[0], image_shape[1], 1)
-        segmentation_car = (im_softmax_car > 0.5).reshape(image_shape[0], image_shape[1], 1)
+        
         if is_printed_once == False:
             print("a-im_softmax :"+str(im_softmax))
             print("a-len :"+str(len(im_softmax[0])))
@@ -209,26 +199,14 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
             print("r-len :"+str(len(im_softmax_road)))
             print("r-uniq="+str(np.unique(im_softmax_road,return_counts=True)))
             print(len(np.unique(im_softmax_road)))
-            print("c-im_softmax :"+str(im_softmax_car))
-            print("c-len :"+str(len(im_softmax_car)))
-            print("c-uniq="+str(np.unique(im_softmax_car,return_counts=True)))
-            print(len(np.unique(im_softmax_car)))
             print("-segmentation_road :"+str(segmentation_road))
             print("-uniq="+str(np.unique(segmentation_road,return_counts=True)))
             print(len(np.unique(segmentation_road)))
-            print("-segmentation_car :"+str(segmentation_car))
-            print("-uniq="+str(np.unique(segmentation_car,return_counts=True)))
-            print(len(np.unique(segmentation_car)))
             print("________")
             is_printed_once = True
         mask = np.dot(segmentation_road, np.array([[0, 255, 0, 127]]))
         mask = scipy.misc.toimage(mask, mode="RGBA")
         street_im = scipy.misc.toimage(image)
-        street_im.paste(mask, box=None, mask=mask)
-        
-        mask = np.dot(segmentation_car, np.array([[0, 0, 255, 127]]))
-        mask = scipy.misc.toimage(mask, mode="RGBA")
-        street_im = scipy.misc.toimage(street_im)
         street_im.paste(mask, box=None, mask=mask)
                
         mask = np.dot(segmentation_none, np.array([[255, 0, 0, 127]]))

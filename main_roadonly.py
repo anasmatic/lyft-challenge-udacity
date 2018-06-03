@@ -120,7 +120,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
             #label = label.reshape([-1,288,416,num_classes])
             #first 8 epoches (batch_size=16) learning_rate = 0.000001
             train , batch_loss = sess.run([train_op,cross_entropy_loss], 
-                     feed_dict={input_image:image,correct_label:label,keep_prob:0.5,learning_rate:1e-3})
+                     feed_dict={input_image:image,correct_label:label,keep_prob:0.5,learning_rate:1e-4})
             batch_total_loss = batch_total_loss + batch_loss
             print("    batch %d has loss %f"%(batch_num,batch_loss))
             batch_num +=1
@@ -134,7 +134,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     pass
 
 def run(validate):
-    num_classes = 3
+    num_classes = 2
     image_shape = (288,416)#(576, 800)
     data_dir = './data'
     train_dir = 'Train'
@@ -148,7 +148,7 @@ def run(validate):
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
     epochs = 5#8#2#10
-    batch_size = 4#10#6#8#
+    batch_size = 8#10#6#8#
     #learning_rate = 10.0#from project_tests.py
     with tf.Session() as sess:
         #vars
@@ -177,20 +177,20 @@ def run(validate):
             #saver = tf.train.import_meta_graph('./saved/segmentation_model_180531.meta')
             #saver.restore(sess,tf.train.latest_checkpoint('./saved/'))
             saver = tf.train.Saver()
-            saver.restore(sess, "./saved/_180603_01_001/segmentation_model.ckpt")
+            saver.restore(sess, "./saved/_180603_7_001/segmentation_model.ckpt")
             print("Model loaded!")
             #graph.get_tensor_by_name
             ################################################################
             # TODO: Train NN using the train_nn function
         else:
             #saver = tf.train.Saver()
-            #saver.restore(sess, "./saved/_180603_01_001/segmentation_model.ckpt")
+            #saver.restore(sess, "./saved/_180603_7_001/segmentation_model.ckpt")
             print("Model loaded!")
-            print("start train 180603_002 : epochs="+str(epochs)+" ,batch_size="+str(batch_size))
+            print("start train 180603_7_001 roadonly : epochs="+str(epochs)+" ,batch_size="+str(batch_size))
             train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,  correct_label, keep_prob, learning_rate, num_classes, train_files)
         
             #TODO: safe model : 
-            saver.save(sess, './saved/_180603_02/segmentation_model.ckpt')
+            saver.save(sess, './saved/_180603_7_001/segmentation_model.ckpt')
             print("Model Saved!")
             # TODO: Save inference data using helper.save_inference_samples
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files)
