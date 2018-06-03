@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import os.path
 import tensorflow as tf
-import helper
+import helper_roadonly
 import warnings
 from distutils.version import LooseVersion
 import numpy as np
@@ -142,7 +142,7 @@ def run(validate):
     #tests.test_for_kitti_dataset(data_dir)
 
     # Download pretrained vgg model
-    helper.maybe_download_pretrained_vgg(data_dir)
+    helper_roadonly.maybe_download_pretrained_vgg(data_dir)
 
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
@@ -159,7 +159,7 @@ def run(validate):
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
-        get_batches_fn, train_files, validation_files = helper.gen_batch_function(os.path.join(data_dir, train_dir), image_shape)
+        get_batches_fn, train_files, validation_files = helper_roadonly.gen_batch_function(os.path.join(data_dir, train_dir), image_shape)
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
         print("train_paths : %d"%len(train_files))
@@ -193,7 +193,7 @@ def run(validate):
             saver.save(sess, './saved/_180603_7_001/segmentation_model.ckpt')
             print("Model Saved!")
             # TODO: Save inference data using helper.save_inference_samples
-        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files)
+        helper_roadonly.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image, validation_files)
         print("done")
         
 import scipy.misc
